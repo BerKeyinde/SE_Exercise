@@ -1,0 +1,68 @@
+#!/bin/bash
+
+
+# function to show how to use the script
+help() { echo $"Usage: $0 [-c <0 - 100>] [-w <0 - 100>] [-e <email_address>]" 1>&2; 
+	  echo $"Params: -c : critical threshold, -w : warning threshold, -e : recepient email address" 1>&2;
+	  echo $"Where: -c is greater than -w values": 1>&2;
+	  exit 1; }
+
+# catch arguments using getopts and assign them to respected variables
+while getopts ":c:w:e:" o; do
+	case "$o" in
+		c)
+			c=${OPTARG}
+			;;
+		w)
+			w=${OPTARG}
+			;;
+		e)
+			e=${OPTARG}
+			;;
+		*)
+			help
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+# condition statements to check if parameters exists or if value of -c is lesser than -w
+if [ "${c}" -lt "${w}" ] || [ -z "${c}" ] || [ -z "${w}" ] || [ -z "${e}" ]; then
+        help
+fi
+
+# Get total memory and used memory that is returned by free command
+total_mem=$(free | grep Mem: | awk '{ print $2 }')
+used_mem=$(free | grep Mem: | awk '{ print $3 }')
+
+# Compute crital threshold and warning threshold values from the percentages supplied via params
+let "critical = $total_mem * $c / 100"
+let "warning = $total_mem * $w / 100"
+
+# Show values
+echo "Critical Threshold = $critical MB"
+echo "Warning Threshold = $warning MB"
+echo "Used Memory = $used_mem MB"
+echo "Total Memory = $total_mem MB"
+
+# Check if used memory is greater than critical value
+if [ "$used_mem" -ge "$critical" ]; then
+	current_date=$(date "+%Y%m%d %H:%M") # get current time and date to use as subject
+	ps aux | awk '{print $2, $4, $11}' | sort -k2rn | head -n 10 > mail_body.tmp # get top 10 processes that use memory and store to mail_body.tmp
+	cat mail_body.tmp | mail -s "$current_date memory check - critical" "$e" # parse mail_body.tmp to use as mail body then send email to the email supplied via params
+	body=$(cat mail_body.tmp) 
+	echo "Exit Code 2. Email sent to $e with subject: $current_date and body:"
+	echo "$body"1>&2
+	exit 2 # exit code 2
+fi
+
+# Check if used memory is greater than warning value
+if [ "$used_mem" -ge "$warning" ] && [ "$used_mem" -lt "$critical" ]; then
+	echo "Exit Code 1" 1>&2
+	exit 1 #exit code 1
+fi
+
+# Check if used memory does not reach warning threshold
+if [ "$warning" -ge "$used_mem" ]; then
+	exit 0 #exit code 0
+fi
