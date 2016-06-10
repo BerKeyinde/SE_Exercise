@@ -49,7 +49,7 @@ echo "Total Memory = $total_mem MB"
 if [ "$used_mem" -ge "$critical" ]; then
 	current_date=$(date "+%Y%m%d %H:%M") # get current time and date to use as subject
 	ps aux | awk '{print $2, $4, $11}' | sort -k2rn | head -n 10 > mail_body.tmp # get top 10 processes that use memory and store to mail_body.tmp
-	cat mail_body.tmp | mail -s "$current_date memory check - critical" "$e" # parse mail_body.tmp to use as mail body then send email to the email supplied via params
+	cat mail_body.tmp | mail -s "$current_date memory check - critical" $e # parse mail_body.tmp to use as mail body then send email to the email supplied via params
 	body=$(cat mail_body.tmp) 
 	echo "Exit Code 2. Email sent to $e with subject: $current_date and body:"
 	echo "$body"1>&2
