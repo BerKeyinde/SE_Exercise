@@ -53,6 +53,7 @@ if [ "$used_mem" -ge "$critical" ]; then
 	body=$(cat mail_body.tmp) 
 	echo "Exit Code 2. Email sent to $e with subject: $current_date and body:"
 	echo "$body"1>&2
+	rm mail_body.tmp
 	exit 2 # exit code 2
 fi
 
